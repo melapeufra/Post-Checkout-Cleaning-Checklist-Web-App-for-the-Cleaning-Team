@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h1 class="h4 mb-1">🧹 CHECK-LIST MÉNAGE — MAISON</h1>
+    <p class="text-muted mb-4">🧹 СПИСОК ДЛЯ ПРИБИРАННЯ — БУДИНОК<br/>À remplir après chaque ménage check-out || Заповнити після кожного прибирання при виїзді</p>
+
+    <form method="post" action="{{ url_for('submit') }}" enctype="multipart/form-data" novalidate>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Email <span class="text-danger">*</span></label>
+          <input type="email" name="email" class="form-control" placeholder="you@neybor.co" required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">🏠 Appartement || КВАРТИРА <span class="text-danger">*</span></label>
+          <input type="text" name="apartment" class="form-control" placeholder="Ex: Maison Florence 63" required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">📅 DATE || ДАТА <span class="text-danger">*</span></label>
+          <input type="date" name="date" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">👤 Nom de la personne || ІМ’Я ЛЮДИНИ <span class="text-danger">*</span></label>
+          <input type="text" name="person_name" class="form-control" placeholder="Votre nom" required />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">📍 Localisation (cliquez sur la carte) || Розташування</label>
+          <div id="map" class="rounded border" style="height: 240px;"></div>
+          <input type="hidden" name="lat" id="lat" />
+          <input type="hidden" name="lng" id="lng" />
+          <div class="form-text">Utilisez la carte pour placer un repère approximatif.</div>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <!-- Rooms -->
+      {% for room in checklist.rooms %}
+      <div class="mb-4">
+        <h2 class="h5 mb-3">{{ room.title }}</h2>
+        <div class="row g-3">
+          {% for task in checklist.room_tasks %}
+          <div class="col-md-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="{{ room.key }}__{{ task.key }}" id="{{ room.key }}__{{ task.key }}">
+              <label class="form-check-label" for="{{ room.key }}__{{ task.key }}">{{ task.label }}</label>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="col-md-6">
+            <label class="form-label">Photo Avant nettoyage || Фото перед чищенням</label>
+            <input type="file" name="{{ room.key }}__photo_before" accept="image/*" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Photo après nettoyage || Фото після прибирання</label>
+            <input type="file" name="{{ room.key }}__photo_after" accept="image/*" class="form-control">
+          </div>
+        </div>
+      </div>
+      <hr>
+      {% endfor %}
+
+      <!-- Reusable section macro-ish block -->
+      {% macro section_block(section) -%}
+        <div class="mb-4">
+          <h2 class="h5 mb-3">
+            {{ section.title }}{% if section.required %} <span class="text-danger">*</span>{% endif %}
+          </h2>
+          <div class="row g-3">
+            {% for task in section.tasks %}
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="{{ section.key }}__{{ task.key }}" id="{{ section.key }}__{{ task.key }}">
+                <label class="form-check-label" for="{{ section.key }}__{{ task.key }}">{{ task.label }}</label>
+              </div>
+            </div>
+            {% endfor %}
+            <div class="col-md-6">
+              <label class="form-label">Photo Avant nettoyage || Фото перед чищенням</label>
+              <input type="file" name="{{ section.key }}__photo_before" accept="image/*" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Photo après nettoyage || Фото після прибирання</label>
+              <input type="file" name="{{ section.key }}__photo_after" accept="image/*" class="form-control">
+            </div>
+          </div>
+        </div>
+        <hr>
+      {%- endmacro %}
+
+      {{ section_block(checklist.kitchen) }}
+      {{ section_block(checklist.dishes) }}
+      {{ section_block(checklist.oven) }}
+      {{ section_block(checklist.microwave) }}
+      {{ section_block(checklist.shower) }}
+      {{ section_block(checklist.toilet) }}
+
+      <div class="mb-4">
+        <h2 class="h5 mb-3">{{ checklist.special.title }}</h2>
+        <textarea class="form-control" name="special_text" rows="3" placeholder="Ex: Ampoule manquante, fuite, etc."></textarea>
+      </div>
+
+      <div class="mb-4">
+        <h2 class="h5 mb-3">{{ checklist.extra_photo_comment.title }}</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <input type="file" name="extra__photo" accept="image/*" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <textarea class="form-control" name="extra_text" rows="1" placeholder="Commentaire"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid">
+        <button class="btn btn-primary btn-lg" type="submit">Envoyer / Надіслати</button>
+      </div>
+
+      <div class="small text-muted mt-3">Never submit passwords through this form.</div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Leaflet simple picker (Brussels default)
+  const map = L.map('map').setView([50.8467, 4.3525], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  let marker = null;
+  function setMarker(latlng) {
+    if (marker) { marker.setLatLng(latlng); }
+    else { marker = L.marker(latlng).addTo(map); }
+    document.getElementById('lat').value = latlng.lat.toFixed(6);
+    document.getElementById('lng').value = latlng.lng.toFixed(6);
+  }
+
+  map.on('click', (e) => setMarker(e.latlng));
+  // Try browser geolocation for convenience
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const latlng = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+      map.setView(latlng, 14);
+      setMarker(latlng);
+    });
+  }
+</script>
+{% endblock %}

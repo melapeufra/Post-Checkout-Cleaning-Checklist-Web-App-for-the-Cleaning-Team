@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if single_id %}
+    <div class="alert alert-success">Merci ! Votre envoi #{{ single_id }} a été sauvegardé. ✅</div>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Faire un autre envoi</a>
+  {% endif %}
+
+  {% if entries and not single_id %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h5 m-0">Dernières soumissions (max 100)</h2>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('index') }}">Retour au formulaire</a>
+    </div>
+    <div class="list-group">
+      {% for e in entries %}
+      <div class="list-group-item py-3">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fw-semibold">#{{ e.id }} — {{ e.apartment }} — {{ e.date_iso }}</div>
+            <div class="small text-muted">{{ e.person_name }} &lt;{{ e.email }}&gt; • {{ e.created_at }}</div>
+          </div>
+          {% if e.lat and e.lng %}
+            <div class="small text-muted">📍 {{ "%.6f"|format(e.lat) }}, {{ "%.6f"|format(e.lng) }}</div>
+          {% endif %}
+        </div>
+
+        <details class="mt-2">
+          <summary>Voir détails</summary>
+          <div class="mt-2">
+            <pre class="bg-light p-2 rounded small">{{ e.data | tojson(indent=2, ensure_ascii=False) }}</pre>
+          </div>
+          {% if e.files %}
+            <div class="row g-2 mt-1">
+              {% for sec, filedict in e.files.items() %}
+                {% for label, fname in filedict.items() %}
+                  {% if fname %}
+                    <div class="col-md-3">
+                      <div class="border rounded p-1 small text-center">
+                        <div class="mb-1">{{ sec }} / {{ label }}</div>
+                        <img src="{{ url_for('uploaded_file', sid=e.id, filename=fname) }}" class="img-fluid rounded" alt="photo">
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </details>
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
